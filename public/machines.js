@@ -49,6 +49,11 @@ const emojiSelects = {
   animals: animalEmojisHtml,
 };
 
+const defaultEmojiByMode = {
+  expressions: expressionEmojis[0],
+  animals: animalEmojis[0],
+};
+
 const activeMachineImage = {
   expressions:
     'https://content.codecademy.com/courses/learn-express-routes/machine-active.svg',
@@ -384,14 +389,14 @@ function selectExpressionMode(mode) {
     $('#emoji-field')
       .prop('disabled', false)
       .removeClass('disabled')
-      .val(emojiSelects[currentMode][0]);
+      .val(defaultEmojiByMode[currentMode]);
     $('#create-expression').addClass('active');
     $('#id-field').prop('readonly', true).addClass('disabled');
   } else if (mode === 'UPDATE') {
     $('#emoji-field')
       .prop('disabled', false)
       .removeClass('disabled')
-      .val(emojiSelects[currentMode][0]);
+      .val(defaultEmojiByMode[currentMode]);
     $('#update-expression').addClass('active');
   } else if (mode === 'DELETE') {
     $('#emoji-field').prop('disabled', false).removeClass('disabled').val('');
