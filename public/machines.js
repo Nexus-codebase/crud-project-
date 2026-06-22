@@ -70,6 +70,121 @@ const activePluralRouteImage = {
     'https://content.codecademy.com/courses/learn-express-routes/animals-route-active.svg',
 };
 
+const useClientFallbackApi =
+  window.location.hostname.endsWith('github.io') ||
+  window.location.protocol === 'file:';
+const fallbackStorageKey = 'express-yourself-fallback-v1';
+
+function createFallbackSeed() {
+  return {
+    expressions: [
+      { id: 1, emoji: '😀', name: 'happy' },
+      { id: 2, emoji: '😎', name: 'shades' },
+      { id: 3, emoji: '😴', name: 'sleepy' },
+    ],
+    animals: [
+      { id: 1, emoji: '🐶', name: 'Pupper' },
+      { id: 2, emoji: '🐍', name: 'Snek' },
+      { id: 3, emoji: '🐱', name: 'Maru' },
+    ],
+  };
+}
+
+function getFallbackState() {
+  try {
+    const raw = localStorage.getItem(fallbackStorageKey);
+    if (!raw) {
+      const seed = createFallbackSeed();
+      localStorage.setItem(fallbackStorageKey, JSON.stringify(seed));
+      return seed;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed.expressions || !parsed.animals) {
+      const seed = createFallbackSeed();
+      localStorage.setItem(fallbackStorageKey, JSON.stringify(seed));
+      return seed;
+    }
+    return parsed;
+  } catch (error) {
+    const seed = createFallbackSeed();
+    localStorage.setItem(fallbackStorageKey, JSON.stringify(seed));
+    return seed;
+  }
+}
+
+function saveFallbackState(state) {
+  localStorage.setItem(fallbackStorageKey, JSON.stringify(state));
+}
+
+function toSafeId(value) {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function fallbackGetById(type, id) {
+  const numericId = toSafeId(id);
+  if (!numericId) {
+    return null;
+  }
+  const state = getFallbackState();
+  return state[type].find((item) => item.id === numericId) || null;
+}
+
+function fallbackCreate(type, name, emoji) {
+  if (!name || !emoji) {
+    return null;
+  }
+  const state = getFallbackState();
+  const list = state[type];
+  const nextId = list.length
+    ? Math.max(...list.map((item) => item.id)) + 1
+    : 1;
+  const created = { id: nextId, name, emoji };
+  list.push(created);
+  saveFallbackState(state);
+  return created;
+}
+
+function fallbackUpdate(type, id, name, emoji) {
+  const numericId = toSafeId(id);
+  if (!numericId) {
+    return null;
+  }
+  const state = getFallbackState();
+  const index = state[type].findIndex((item) => item.id === numericId);
+  if (index === -1) {
+    return null;
+  }
+  if (name) {
+    state[type][index].name = name;
+  }
+  if (emoji) {
+    state[type][index].emoji = emoji;
+  }
+  saveFallbackState(state);
+  return state[type][index];
+}
+
+function fallbackDelete(type, id) {
+  const numericId = toSafeId(id);
+  if (!numericId) {
+    return false;
+  }
+  const state = getFallbackState();
+  const index = state[type].findIndex((item) => item.id === numericId);
+  if (index === -1) {
+    return false;
+  }
+  state[type].splice(index, 1);
+  saveFallbackState(state);
+  return true;
+}
+
+function fallbackGetAll(type) {
+  const state = getFallbackState();
+  return state[type];
+}
+
 $(document).ready(() => {
   setMode('expressions');
   pingMachine();
@@ -338,6 +453,48 @@ function clearExpressionsText() {
 }
 
 function makeExpressionRequest(id, name, emoji) {
+  if (useClientFallbackApi) {
+    switch (currentRequest) {
+      case 'GET': {
+        const expression = fallbackGetById(currentMode, id);
+        if (expression) {
+          animateGoodExpressionRequest('200', 'OK', expression);
+        } else {
+          animateBadExpressionRequest('404', 'Not Found');
+        }
+        break;
+      }
+      case 'CREATE': {
+        const created = fallbackCreate(currentMode, name, emoji);
+        if (created) {
+          animateGoodExpressionRequest('200', 'OK', created);
+        } else {
+          animateBadExpressionRequest('400', 'Bad Request');
+        }
+        break;
+      }
+      case 'UPDATE': {
+        const updated = fallbackUpdate(currentMode, id, name, emoji);
+        if (updated) {
+          animateGoodExpressionRequest('200', 'OK', updated);
+        } else {
+          animateBadExpressionRequest('404', 'Not Found');
+        }
+        break;
+      }
+      case 'DELETE': {
+        const deleted = fallbackDelete(currentMode, id);
+        if (deleted) {
+          animateGoodExpressionRequest('204', 'No Content');
+        } else {
+          animateBadExpressionRequest('404', 'Not Found');
+        }
+        break;
+      }
+    }
+    return;
+  }
+
   switch (currentRequest) {
     case 'GET':
       $.ajax(generateRoute(id), {
@@ -413,6 +570,11 @@ function setExpressionsRequestText() {
 }
 
 function makeExpressionsRequest() {
+  if (useClientFallbackApi) {
+    animateGoodExpressionsRequest('200', 'OK', fallbackGetAll(currentMode));
+    return;
+  }
+
   $.ajax(generateRoute(), {
     success: function (expressions) {
       animateGoodExpressionsRequest('200', 'OK', expressions);
