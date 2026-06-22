@@ -228,6 +228,9 @@ function setMode(mode) {
     return;
   }
   currentMode = mode;
+  if (useClientFallbackApi) {
+    activateMachine();
+  }
   pingMachine();
   $('#emoji-field').html(emojiSelects[currentMode]);
   selectExpressionMode('GET');
@@ -363,7 +366,7 @@ function deactivateExpressions() {
 }
 
 function selectExpressionMode(mode) {
-  if (!machineIsOn) {
+  if (!machineIsOn && !useClientFallbackApi) {
     return;
   }
 
@@ -399,7 +402,7 @@ function selectExpressionMode(mode) {
 }
 
 function triggerExpressionRequest() {
-  if (requestInProgress || !machineIsOn) {
+  if (requestInProgress || (!machineIsOn && !useClientFallbackApi)) {
     return;
   }
 
@@ -556,7 +559,7 @@ function makeExpressionRequest(id, name, emoji) {
 }
 
 function triggerExpressionsRequest() {
-  if (requestInProgress || !machineIsOn) {
+  if (requestInProgress || (!machineIsOn && !useClientFallbackApi)) {
     return;
   }
 
