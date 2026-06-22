@@ -253,6 +253,19 @@ function pingMachine() {
     return;
   }
 
+  if (useClientFallbackApi) {
+    activateMachine();
+    if (
+      $('#expression-route').attr('src') !==
+      activeSingularRouteImage[currentMode]
+    ) {
+      $('#expression-route').attr('src', activeSingularRouteImage[currentMode]);
+      $('#expressions-route').attr('src', activePluralRouteImage[currentMode]);
+      activateExpressions();
+    }
+    return;
+  }
+
   $.ajax('/', {
     success: function () {
       activateMachine();
